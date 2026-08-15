@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>명예의 전당 박스</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230B0F24' stroke='%23E8B44A' stroke-width='4'/%3E%3Cpath d='M2 32h60' stroke='%23E8B44A' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%230B0F24' stroke='%23E8B44A' stroke-width='4'/%3E%3C/svg%3E">
+<style>
+/* ── 토큰 ───────────────────────────────────────── */
+:root{
+  --ink:#0B0F24;
+  --ink-2:#141A38;
+  --ink-3:#1D2450;
+  --line:rgba(232,180,74,.22);
+  --foil:#E8B44A;
+  --foil-soft:#F3D999;
+  --paper:#ECE9F5;
+  --muted:#8790BD;
+  --danger:#FF6B7A;
+  --r:14px;
+
+  --sans:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard','Noto Sans KR','Malgun Gothic',system-ui,sans-serif;
+  --mono:ui-monospace,'SF Mono','Roboto Mono','DejaVu Sans Mono',monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  background-image:
+    radial-gradient(900px 500px at 50% -10%, rgba(232,180,74,.10), transparent 70%),
+    radial-gradient(600px 400px at 100% 100%, rgba(111,53,252,.12), transparent 70%);
+  background-attachment:fixed;
+  color:var(--paper);
+  font-family:var(--sans);
+  font-size:15px;line-height:1.55;
+  min-height:100dvh;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom));
+}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--foil);outline-offset:2px;border-radius:6px}
+
+/* 데이터 판독용 서체 — 앱의 모든 숫자는 이 얼굴을 씁니다 */
+.readout{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+/* ── 트레이너 카드 (히어로) ────────────────────────── */
+.hero{padding:calc(20px + env(safe-area-inset-top)) 0 18px}
+.trainer{
+  position:relative;overflow:hidden;border-radius:20px;
+  background:linear-gradient(160deg,#1B2350 0%,#101637 55%,#1A1340 100%);
+  border:1px solid var(--line);
+  box-shadow:0 20px 50px -22px #000, inset 0 1px 0 rgba(255,255,255,.07);
+}
+.trainer__holo{
+  position:absolute;inset:-40%;pointer-events:none;
+  background:
+    repeating-linear-gradient(112deg,
+      rgba(255,255,255,0) 0%, rgba(120,255,214,.30) 8%, rgba(255,214,120,.32) 14%,
+      rgba(255,120,214,.30) 20%, rgba(255,255,255,0) 28%);
+  background-size:220% 220%;
+  background-position:calc(50% + var(--hx,0px)) calc(50% + var(--hy,0px));
+  mix-blend-mode:color-dodge;opacity:.5;
+  transition:background-position .18s ease-out;
+}
+.trainer__body{position:relative;padding:20px}
+.trainer__top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.trainer__name{
+  font-size:26px;font-weight:800;letter-spacing:-.02em;margin:2px 0 0;
+  background:none;border:none;padding:0;width:100%;
+}
+.trainer__name::placeholder{color:rgba(236,233,245,.35)}
+.crest{
+  flex:none;width:44px;height:44px;border-radius:50%;
+  border:2px solid var(--foil);position:relative;background:var(--ink);
+}
+.crest::before{content:"";position:absolute;left:0;right:0;top:calc(50% - 1px);height:2px;background:var(--foil)}
+.crest::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid var(--foil);background:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px;
+  border-top:1px solid var(--line);padding-top:14px}
+.stat b{display:block;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--foil-soft);line-height:1.2}
+.stat span{display:block;font-size:11px;color:var(--muted);letter-spacing:.02em}
+
+/* ── 컨트롤 ──────────────────────────────────────── */
+.controls{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.search{
+  display:flex;align-items:center;gap:8px;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:9px 16px;
+}
+.search input{flex:1;background:none;border:none;outline:none;min-width:0}
+.search input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;background:var(--ink-2);border:1px solid var(--line);color:var(--muted);
+  padding:6px 13px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;
+  transition:.15s;
+}
+.chip:hover{color:var(--paper)}
+.chip[aria-pressed="true"]{background:var(--foil);border-color:var(--foil);color:#231803;font-weight:600}
+.sortbar{display:flex;align-items:center;gap:8px}
+.sortbar select{margin-left:auto}
+.chip--action{color:var(--foil-soft);border-color:rgba(232,180,74,.45)}
+.chip--action:hover{background:rgba(232,180,74,.12);color:var(--foil-soft)}
+
+.sortbar select{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;font-size:13px;outline:none
+}
+
+/* ── 박스 그리드 ──────────────────────────────────── */
+.grid{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:16px;
+}
+@media(min-width:600px){.grid{gap:9px}}
+
+.mon{
+  position:relative;overflow:hidden;cursor:pointer;aspect-ratio:1;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:10px;
+  padding:2px;display:grid;place-items:center;
+  transition:transform .14s ease, border-color .14s, box-shadow .14s;
+}
+.mon:hover{transform:translateY(-2px);border-color:rgba(232,180,74,.5)}
+.mon:active{transform:scale(.985)}
+.mon__glow{position:absolute;inset:-30% -30% 40%;pointer-events:none;opacity:.5;filter:blur(26px)}
+.mon__art{
+  position:relative;width:100%;height:100%;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:9%
+}
+.mon__art::before{                     /* 도트가 발 딛고 설 자리 */
+  content:"";position:absolute;bottom:7%;left:50%;transform:translateX(-50%);
+  width:52%;height:8px;border-radius:50%;
+  background:rgba(0,0,0,.5);filter:blur(5px)
+}
+.mon__art img{
+  position:relative;max-height:84%;max-width:92%;width:auto;height:auto;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.55))
+}
+.detail__art .mon__art{padding-bottom:0}
+.detail__art .mon__art::before{display:none}
+.mon__blank{
+  width:52%;aspect-ratio:1;max-width:46px;border-radius:50%;
+  border:1.5px dashed var(--line);position:relative;opacity:.55
+}
+.mon__blank::before{content:"";position:absolute;left:-1px;right:-1px;
+  top:calc(50% - 1px);height:1.5px;background:var(--line)}
+.mon__blank::after{content:"";position:absolute;left:50%;top:50%;
+  width:34%;aspect-ratio:1;transform:translate(-50%,-50%);
+  border-radius:50%;border:1.5px dashed var(--line);background:var(--ink-2)}
+.mon__types{position:relative;display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+.type{font-size:10.5px;font-weight:700;padding:2.5px 7px;border-radius:5px;color:#0B0F24;letter-spacing:.02em}
+
+/* 이로치 — 유일하게 튀는 순간 */
+.mon--shiny{border-color:rgba(245,226,122,.55)}
+.mon--shiny::after{
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:var(--r);
+  background:
+    radial-gradient(2.5px 2.5px at 22% 24%, #FFF7D6, transparent 100%),
+    radial-gradient(2px 2px at 74% 18%, #FFF7D6, transparent 100%),
+    radial-gradient(1.8px 1.8px at 60% 46%, #FFF7D6, transparent 100%),
+    radial-gradient(2.2px 2.2px at 33% 58%, #FFF7D6, transparent 100%);
+  animation:twinkle 2.6s ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.shinytag{position:absolute;top:3px;left:4px;font-size:9px;z-index:2;color:var(--foil-soft)}
+.party{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+/* 순서 조정 모드 */
+.grid.reorder,
+.grid.reorder *{touch-action:none;-webkit-user-select:none;user-select:none}
+.grid.reorder .mon{cursor:grab}
+.grid.reorder .mon:active{cursor:grabbing}
+.grid.reorder .mon{border-style:dashed;border-color:rgba(232,180,74,.40)}
+.mon.dragging{opacity:.3}
+.mon.picked{border-style:solid;border-color:var(--foil);
+  box-shadow:0 0 0 2px var(--foil), 0 8px 22px -8px rgba(232,180,74,.7)}
+.mon.dropzone{box-shadow:inset 0 0 0 2px var(--foil-soft);transform:scale(.92)}
+.reorderbar{
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;
+  background:rgba(232,180,74,.10);border:1px solid rgba(232,180,74,.35);border-radius:12px
+}
+.reorderbar p{margin:0;flex:1;font-size:12.5px;color:var(--foil-soft);line-height:1.4}
+
+/* ── 빈 상태 ─────────────────────────────────────── */
+.empty{
+  margin-top:26px;text-align:center;padding:44px 22px;
+  border:1px dashed var(--line);border-radius:20px;background:rgba(20,26,56,.5)
+}
+.empty h2{font-size:17px;margin:14px 0 6px;font-weight:700}
+.empty p{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+
+/* ── 버튼 ────────────────────────────────────────── */
+.btn{
+  border:1px solid var(--line);background:var(--ink-2);color:var(--paper);
+  padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s
+}
+.btn:hover{border-color:rgba(232,180,74,.5)}
+.btn--gold{background:var(--foil);border-color:var(--foil);color:#231803}
+.btn--gold:hover{background:var(--foil-soft)}
+.btn--ghost{background:none}
+.btn--danger{color:var(--danger);border-color:rgba(255,107,122,.35);background:none}
+.btn--wide{width:100%}
+
+.fab{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(20px + env(safe-area-inset-bottom));z-index:40;
+  background:var(--foil);color:#231803;border:none;border-radius:999px;
+  padding:14px 26px;font-size:15px;font-weight:800;cursor:pointer;
+  box-shadow:0 14px 34px -10px rgba(232,180,74,.6);
+}
+.fab:active{transform:translateX(-50%) scale(.96)}
+
+/* ── 시트 ────────────────────────────────────────── */
+.scrim{
+  position:fixed;inset:0;background:rgba(4,6,18,.72);backdrop-filter:blur(3px);
+  z-index:50;display:none
+}
+.scrim[data-open]{display:block}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:51;
+  max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--ink-2);border-top:1px solid var(--line);
+  border-radius:22px 22px 0 0;
+  padding:8px 16px calc(28px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+}
+.sheet[data-open]{transform:translateY(0)}
+@media(min-width:720px){
+  .sheet{max-width:640px;margin:0 auto;border-radius:22px;bottom:20px;left:16px;right:16px}
+}
+.grab{width:38px;height:4px;border-radius:99px;background:#3A4176;margin:6px auto 14px}
+.sheet h2{font-size:19px;font-weight:800;letter-spacing:-.01em;margin:0 0 2px}
+.sheet__sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+
+/* ── 폼 ──────────────────────────────────────────── */
+.field{margin-bottom:13px}
+.field > label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;letter-spacing:.01em}
+.field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
+  width:100%;background:var(--ink);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;outline:none;transition:border-color .15s
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--foil)}
+.field textarea{resize:vertical;min-height:66px;font-family:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+.lookup{display:flex;gap:8px}
+.lookup input{flex:1}
+.check{display:flex;align-items:center;gap:9px;cursor:pointer;padding:11px 12px;
+  background:var(--ink);border:1px solid var(--line);border-radius:10px}
+.check input{width:18px;height:18px;accent-color:var(--foil);flex:none}
+.hint{font-size:11.5px;color:var(--muted);margin:6px 0 0}
+.hint--err{color:var(--danger)}
+.preview{display:flex;align-items:center;gap:13px;margin-top:11px;padding:10px 13px;
+  background:var(--ink);border:1px solid var(--line);border-radius:12px}
+.preview img{width:auto;height:auto;max-width:72px;max-height:72px;
+  image-rendering:pixelated;image-rendering:crisp-edges;flex:none}
+.preview__label{font-size:12.5px;color:var(--muted);line-height:1.4}
+.preview__label b{display:block;color:var(--paper);font-size:14px;font-weight:700}
+.suggest{margin-top:9px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--ink)}
+.suggest button{
+  display:flex;align-items:center;gap:11px;width:100%;padding:7px 12px;text-align:left;
+  background:none;border:none;border-bottom:1px solid rgba(232,180,74,.10);cursor:pointer
+}
+.suggest button:last-child{border-bottom:none}
+.suggest button:hover,.suggest button:focus-visible{background:var(--ink-3)}
+.suggest img{width:44px;height:44px;object-fit:contain;flex:none;
+  image-rendering:pixelated;image-rendering:crisp-edges}
+.suggest b{display:block;font-size:14px;font-weight:700}
+.suggest i{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
+.suggest .no{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.forms{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none}
+.forms::-webkit-scrollbar{display:none}
+.forms button{
+  flex:none;width:84px;background:var(--ink);border:1px solid var(--line);border-radius:12px;
+  padding:6px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:border-color .14s,background .14s
+}
+.forms button:hover{border-color:rgba(232,180,74,.5)}
+.forms button[aria-pressed="true"]{border-color:var(--foil);background:rgba(232,180,74,.10)}
+.forms img{width:60px;height:54px;object-fit:contain;
+  image-rendering:pixelated;image-rendering:crisp-edges}
+.forms span{font-size:10.5px;color:var(--muted);text-align:center;line-height:1.25;
+  max-width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.forms button[aria-pressed="true"] span{color:var(--foil-soft);font-weight:600}
+.evo{display:flex;flex-direction:column;gap:6px}
+.evo:empty{display:none}
+.evo__row{display:flex;align-items:center;gap:9px;padding:7px 11px;
+  background:var(--ink);border:1px solid var(--line);border-radius:10px}
+.evo__row img{width:34px;height:34px;flex:none;object-fit:contain;
+  image-rendering:pixelated;image-rendering:crisp-edges}
+.evo__step{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);flex:none}
+.evo__name{flex:1;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evo__lv{font-family:var(--mono);font-size:11px;color:var(--foil-soft);flex:none}
+.evo__del{background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:16px;line-height:1;padding:2px 4px;flex:none}
+.evo__del:hover{color:var(--danger)}
+.timeline{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.tl{display:flex;align-items:center;gap:10px;position:relative;padding:6px 0}
+.tl::before{content:"";position:absolute;left:16px;top:0;bottom:0;width:1.5px;
+  background:var(--line)}
+.tl:first-child::before{top:50%}
+.tl:last-child::before{bottom:50%}
+.tl__dot{width:33px;height:33px;flex:none;border-radius:50%;background:var(--ink);
+  border:1px solid var(--line);display:grid;place-items:center;position:relative;z-index:1}
+.tl__dot img{width:26px;height:26px;object-fit:contain;
+  image-rendering:pixelated;image-rendering:crisp-edges}
+.tl__txt{font-size:13.5px}
+.tl__txt b{font-weight:600}
+.tl__txt span{color:var(--muted);font-size:12px;margin-left:6px}
+.nodot{width:60px;height:54px;display:grid;place-items:center;text-align:center;
+  border:1px dashed var(--line);border-radius:8px;
+  font-size:9.5px;line-height:1.2;color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--line);margin:20px 0 16px}
+.sheet__actions{display:flex;gap:10px;margin-top:22px}
+.sheet__actions .btn{flex:1}
+
+/* ── 상세 ────────────────────────────────────────── */
+.detail__hero{display:flex;gap:16px;align-items:center;margin-bottom:16px}
+.detail__art{width:110px;height:110px;flex:none;border-radius:16px;border:1px solid var(--line);
+  display:grid;place-items:center;background:var(--ink);position:relative;overflow:hidden}
+.detail__art img{max-width:100px;max-height:100px;width:auto;height:auto;
+  image-rendering:pixelated;image-rendering:crisp-edges;position:relative}
+.detail__meta h2{margin:0 0 3px}
+.dl{display:grid;grid-template-columns:88px 1fr;gap:9px 12px;font-size:14px}
+.dl dt{color:var(--muted);font-size:12.5px;padding-top:1px}
+.dl dd{margin:0}
+.dl dd.ball{display:flex;align-items:center;gap:6px}
+.dl dd.ball img{width:20px;height:20px;image-rendering:pixelated;image-rendering:crisp-edges}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.move{background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13px}
+.toast{
+  position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  background:var(--ink-3);border:1px solid var(--line);color:var(--paper);
+  padding:10px 18px;border-radius:999px;font-size:13.5px;z-index:80;
+  opacity:0;pointer-events:none;transition:.22s
+}
+.toast[data-show]{opacity:1;transform:translate(-50%,0)}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- 히어로: 트레이너 카드 -->
+  <header class="hero">
+    <div class="trainer" id="trainerCard">
+      <div class="trainer__holo" id="holo"></div>
+      <div class="trainer__body">
+        <div class="trainer__top">
+          <div style="min-width:0">
+            <div class="readout">Trainer</div>
+            <input class="trainer__name" id="trainerName" placeholder="이름을 입력하세요" maxlength="16">
+          </div>
+          <div class="crest" aria-hidden="true"></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="sCount">0</b><span>마리</span></div>
+          <div class="stat"><b id="sGames">0</b><span>클리어</span></div>
+          <div class="stat"><b id="sShiny">0</b><span>이로치</span></div>
+          <div class="stat"><b id="sLast">—</b><span>최근 만남</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 컨트롤 -->
+  <div class="controls">
+    <div class="search">
+      <span aria-hidden="true">⌕</span>
+      <input id="q" type="text" placeholder="별명, 종족, 장소로 찾기" autocomplete="off">
+    </div>
+    <div class="chips" id="gameChips"></div>
+    <div class="sortbar">
+      <button class="chip chip--action" id="randomBtn">🎲 랜덤 6마리</button>
+      <button class="chip chip--action" id="reorderBtn">⇅ 순서 조정</button>
+      <button class="chip" id="shinyOnly" aria-pressed="false">✦ 이로치만</button>
+      <select id="sort" aria-label="정렬">
+        <option value="custom">설정순</option>
+        <option value="new">최근 만난 순</option>
+        <option value="old">오래 전 만난 순</option>
+        <option value="dex">도감번호순</option>
+        <option value="lv">레벨 높은순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 박스 -->
+  <div class="reorderbar" id="reorderBar" hidden>
+    <p id="reorderMsg">도트를 끌어서 원하는 자리에 놓으세요. 순서는 자동으로 저장됩니다.</p>
+    <button class="btn" id="reorderDone" type="button">완료</button>
+  </div>
+  <main id="grid" class="grid"></main>
+  <div id="empty" class="empty" hidden>
+    <div style="font-size:34px" aria-hidden="true">◓</div>
+    <h2>박스가 비어 있어요</h2>
+    <p>처음 전당에 오른 파트너부터 기록해보세요.</p>
+    <button class="btn btn--gold" data-add>첫 포켓몬 추가</button>
+  </div>
+
+  <hr class="divider">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding-bottom:10px">
+    <button class="btn btn--ghost" id="exportBtn">백업 파일 내보내기</button>
+    <button class="btn btn--ghost" id="importBtn">백업 불러오기</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+</div>
+
+<button class="fab" data-add>＋ 포켓몬 추가</button>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- 편집 시트 -->
+<section class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="grab"></div>
+  <h2 id="editTitle">포켓몬 추가</h2>
+  <p class="sheet__sub">별명과 게임만 있어도 저장돼요. 나머지는 나중에 채워도 됩니다.</p>
+
+  <div class="field">
+    <label for="lookup">포켓몬 찾기</label>
+    <div class="lookup">
+      <input type="text" id="lookup" placeholder="피카츄 · pikachu · 25" autocomplete="off">
+      <button class="btn" id="lookupBtn" type="button">찾기</button>
+    </div>
+    <div class="suggest" id="suggest" hidden></div>
+    <div class="row" style="margin-top:11px">
+      <div class="field" style="margin:0">
+        <label for="fDex">도감번호 <span style="opacity:.7">(도트를 찾는 번호)</span></label>
+        <input type="number" id="fDex" min="1" max="1200" placeholder="25">
+      </div>
+    </div>
+    <div id="formField" hidden style="margin-top:12px">
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">모습 고르기</label>
+      <div class="forms" id="forms"></div>
+    </div>
+    <div class="preview" id="preview" hidden>
+      <img id="previewImg" alt="" onerror="__sfb(this)">
+      <div class="preview__label"><b id="previewName">—</b><span id="previewNote">도감번호로 찾은 도트</span></div>
+    </div>
+    <p class="hint" id="lookupHint">도감번호만 넣어도 도트가 바로 나와요. 이름·타입 자동 입력은 인터넷이 필요합니다.</p>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <div class="field">
+      <label for="fNick">별명</label>
+      <input type="text" id="fNick" maxlength="24" placeholder="피카">
+    </div>
+    <div class="field">
+      <label for="fSpecies">종족</label>
+      <input type="text" id="fSpecies" maxlength="24" placeholder="피카츄">
+    </div>
+  </div>
+
+  <div class="row-3">
+    <div class="field">
+      <label for="fBall">몬스터볼</label>
+      <input type="text" id="fBall" list="ballList" maxlength="20" placeholder="몬스터볼">
+      <datalist id="ballList"></datalist>
+    </div>
+    <div class="field">
+      <label for="fLevel">레벨</label>
+      <input type="number" id="fLevel" min="1" max="100" placeholder="50">
+    </div>
+    <div class="field">
+      <label for="fGender">성별</label>
+      <select id="fGender">
+        <option value="">—</option>
+        <option value="♂">♂ 수컷</option>
+        <option value="♀">♀ 암컷</option>
+        <option value="무성">무성</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="fType1">타입 1</label>
+      <select id="fType1"></select>
+    </div>
+    <div class="field">
+      <label for="fType2">타입 2</label>
+      <select id="fType2"></select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="check" for="fShiny">
+      <input type="checkbox" id="fShiny">
+      <span>✦ 색이 다른 포켓몬 (이로치)</span>
+    </label>
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label for="fGame">게임 <span style="color:var(--foil)">*</span></label>
+    <input type="text" id="fGame" list="gameList" placeholder="화이트">
+    <datalist id="gameList"></datalist>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="fDate">만난 날짜</label>
+      <input type="date" id="fDate">
+    </div>
+    <div class="field">
+      <label for="fMet">만난 장소</label>
+      <input type="text" id="fMet" maxlength="30" placeholder="1번도로">
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="fMetSpecies">만났을 때 모습</label>
+      <input type="text" id="fMetSpecies" list="chainList" maxlength="24" placeholder="파이리">
+      <datalist id="chainList"></datalist>
+    </div>
+    <div class="field">
+      <label for="fMetLevel">만난 레벨</label>
+      <input type="number" id="fMetLevel" min="1" max="100" placeholder="5">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>진화 과정</label>
+    <div class="evo" id="evoBox"></div>
+    <div class="lookup" style="margin-top:8px">
+      <input type="text" id="evoSpecies" list="chainList" maxlength="24" placeholder="진화한 모습">
+      <input type="number" id="evoLevel" min="1" max="100" placeholder="Lv" style="width:74px;flex:none">
+      <button class="btn" id="evoAdd" type="button">추가</button>
+    </div>
+    <p class="hint" id="evoHint">잡은 뒤 진화시킨 단계를 순서대로 남겨보세요.</p>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="fAbility">특성</label>
+      <input type="text" id="fAbility" maxlength="24" placeholder="정전기">
+    </div>
+    <div class="field">
+      <label for="fNature">성격</label>
+      <input type="text" id="fNature" maxlength="16" placeholder="명랑">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>기술</label>
+    <div class="row">
+      <input type="text" id="fMove1" maxlength="20" placeholder="기술 1">
+      <input type="text" id="fMove2" maxlength="20" placeholder="기술 2">
+    </div>
+    <div class="row" style="margin-top:11px">
+      <input type="text" id="fMove3" maxlength="20" placeholder="기술 3">
+      <input type="text" id="fMove4" maxlength="20" placeholder="기술 4">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="fMemo">기억해두고 싶은 것</label>
+    <textarea id="fMemo" maxlength="500" placeholder="첫 파트너. 챔피언전에서 마지막까지 버텨준 친구."></textarea>
+  </div>
+
+  <p class="hint hint--err" id="formErr" hidden></p>
+
+  <div class="sheet__actions">
+    <button class="btn btn--ghost" data-close type="button">취소</button>
+    <button class="btn btn--gold" id="saveBtn" type="button">저장</button>
+  </div>
+</section>
+
+<!-- 랜덤 6마리 -->
+<section class="sheet" id="partySheet" role="dialog" aria-modal="true" aria-labelledby="partyTitle">
+  <div class="grab"></div>
+  <div class="readout">Random Six</div>
+  <h2 id="partyTitle">오늘의 6마리</h2>
+  <p class="sheet__sub" id="partySub"></p>
+  <div class="party" id="party"></div>
+  <div class="sheet__actions">
+    <button class="btn" id="rerollBtn" type="button">🎲 다시 뽑기</button>
+    <button class="btn btn--gold" data-close type="button">닫기</button>
+  </div>
+</section>
+
+<!-- 상세 시트 -->
+<section class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-labelledby="detailName">
+  <div class="grab"></div>
+  <div id="detailBody"></div>
+  <div class="sheet__actions">
+    <button class="btn btn--danger" id="delBtn" type="button">삭제</button>
+    <button class="btn" id="editBtn" type="button">수정</button>
+    <button class="btn btn--gold" data-close type="button">닫기</button>
+  </div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ═══ 타입 ═══════════════════════════════════════ */
+const TYPES = {
+  normal:['노말','#B0AC82'], fire:['불꽃','#F08A30'], water:['물','#6FA0F5'],
+  electric:['전기','#F7D02C'], grass:['풀','#7DC94E'], ice:['얼음','#8FD8D6'],
+  fighting:['격투','#D64B45'], poison:['독','#B554B0'], ground:['땅','#E0C06A'],
+  flying:['비행','#A99BF3'], psychic:['에스퍼','#F76B93'], bug:['벌레','#B0C226'],
+  rock:['바위','#C1AE4E'], ghost:['고스트','#8168A8'], dragon:['드래곤','#8258FC'],
+  dark:['악','#8A7263'], steel:['강철','#B9B9D2'], fairy:['페어리','#E294BC']
+};
+const KO2EN = Object.fromEntries(Object.entries(TYPES).map(([en,[ko]]) => [ko, en]));
+const typeColor = ko => TYPES[KO2EN[ko]]?.[1] || '#5B639B';
+
+/* ── 도트 그림체 통일 ───────────────────────────
+   1세대부터 9세대까지 전부 같은 블랙·화이트 정지 도트로 맞춥니다.
+   포켓몬쇼다운의 BW 도트 세트는 브리두라스(No.1018) 같은 최신 포켓몬까지
+   같은 화풍으로 그려져 있어서, 박스 안에서 그림체가 섞이지 않아요.
+   쇼다운은 영문 이름을 주소로 쓰기 때문에 이름표의 영문명을 씁니다. */
+const SD = 'https://play.pokemonshowdown.com/sprites/';
+const PA = 'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/';
+/* 움직이는 도트(GIF)는 쓰지 않습니다 — 전부 정지 도트로 통일 */
+const CDN = [
+  (id,s,g)   => g && `${SD}gen5${s?'-shiny':''}/${g}.png`,                                        // BW 정지 도트 (전 세대)
+  (id,s,g,f) => id && `${PA}versions/generation-v/black-white/${s?'shiny/':''}${f?'female/':''}${id}.png`,
+  (id,s,g,f) => id && `${PA}${s?'shiny/':''}${f?'female/':''}${id}.png`                            // 마지막 안전망
+];
+/* 모습 표시 비트: 1 기본 · 2 암컷 · 4 무늬만 다른 모습(쇼다운에만 있음) */
+const F_DEFAULT = 1, F_FEMALE = 2, F_COSMETIC = 4;
+/* 쇼다운 주소 규칙
+     종족명은 기호를 모두 지우고 (Farfetch'd → farfetchd),
+     모습이 있으면 하이픈 하나로 이어 붙입니다 (charizard-mega-x → charizard-megax). */
+const slugify = en => (en || '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .replace(/♀/g,'f').replace(/♂/g,'m')
+  .toLowerCase().replace(/[^a-z0-9]/g,'');
+
+// 쇼다운이 다르게 부르는 몇몇 모습
+const SD_FIX = {
+  'darmanitan-galarstandard':'darmanitan-galar',
+  'necrozma-dusk':'necrozma-duskmane',
+  'necrozma-dawn':'necrozma-dawnwings',
+  'tauros-paldeacombatbreed':'tauros-paldeacombat',
+  'tauros-paldeablazebreed':'tauros-paldeablaze',
+  'tauros-paldeaaquabreed':'tauros-paldeaaqua',
+  'minior-redmeteor':'minior-meteor',
+  'zygarde-10powerconstruct':'zygarde-10',
+  'zygarde-50powerconstruct':'zygarde',
+  'pikachu-originalcap':'pikachu-original','pikachu-hoenncap':'pikachu-hoenn',
+  'pikachu-sinnohcap':'pikachu-sinnoh','pikachu-unovacap':'pikachu-unova',
+  'pikachu-kaloscap':'pikachu-kalos','pikachu-alolacap':'pikachu-alola',
+  'pikachu-partnercap':'pikachu-partner','pikachu-worldcap':'pikachu-world',
+  'mimikyu-disguised':'mimikyu','morpeko-fullbelly':'morpeko',
+  'basculegion-male':'basculegion','indeedee-male':'indeedee',
+  'oinkologne-male':'oinkologne','dudunsparce-twosegment':'dudunsparce',
+  'maushold-familyoffour':'maushold','squawkabilly-greenplumage':'squawkabilly',
+  'palafin-zero':'palafin','tatsugiri-curly':'tatsugiri',
+  'unown-question':'unown-qm','unown-exclamation':'unown-em',
+  'vivillon-pokeball':'vivillon-fancy','sinistea-phony':'sinistea',
+  'polteageist-phony':'polteageist','poltchageist-counterfeit':'poltchageist',
+  'sinistcha-unremarkable':'sinistcha','ogerpon-teal':'ogerpon',
+  'terapagos-normal':'terapagos','eiscue-ice':'eiscue','mimikyu-busted':'mimikyu-busted'
+};
+
+/* 종족 식별자 + 모습 식별자 → 쇼다운 주소 */
+function sdSlug(dex, ident, isDefault){
+  const base = BASES[dex] || enOf(dex);
+  const b = slugify(base);
+  if (!b) return '';
+  if (isDefault || !ident) return b;
+  const sfx = ident.startsWith(base + '-') ? ident.slice(base.length + 1) : '';
+  if (!sfx) return b;
+  const raw = b + '-' + slugify(sfx);
+  return SD_FIX[raw] || raw;
+}
+const enOf = dex => INDEX ? (INDEX.find(x => x[0] === dex)?.[2] || '') : '';
+const slugOf = p => p.slug || sdSlug(p.dex, '', true);
+// PokeAPI 도트는 모습마다 고유 번호가 있습니다 (메가리자몽X = 10034)
+const pidOf = p => p.pid || p.dex;
+
+// i번째부터 쓸 수 있는 주소를 찾아 [단계, 주소]로 돌려줍니다
+/* 다른 모습의 도트를 대신 보여주는 일이 없도록 만든 규칙입니다.
+   CDN[0]은 주소(모습별), CDN[1~2]는 모습 고유번호(pid) 기준이라
+   둘 다 그 모습만 가리킵니다. 무늬만 다른 모습은 쇼다운에만 있어서 0번만 씁니다. */
+function srcAt(i, id, shiny, slug, flags){
+  if (!id && !slug) return null;
+  const female = !!(flags & F_FEMALE);
+  const limit = (flags & F_COSMETIC) ? 1 : CDN.length;
+  for (; i < limit; i++){
+    const u = CDN[i](id, shiny, slug, female);
+    if (u) return [i, u];
+  }
+  return null;   // 못 찾으면 기본 모습으로 되돌리지 않고 자리표시를 띄웁니다
+}
+
+/* 모습 이름 — 자주 쓰는 것만 한국어로, 나머지는 영문 그대로 보여줍니다 */
+const FORM_KO = {
+  'mega':'메가','mega-x':'메가 X','mega-y':'메가 Y','gmax':'거다이맥스','primal':'원시',
+  'alola':'알로라','galar':'가라르','hisui':'히스이','paldea':'팔데아',
+  'origin':'오리진','altered':'어나더','therian':'영물','incarnate':'화신',
+  'sky':'스카이','land':'랜드','attack':'어택','defense':'디펜스','speed':'스피드',
+  'normal':'노말','blade':'블레이드','shield':'실드','zen':'달마모드','standard':'보통',
+  'midday':'한낮','midnight':'한밤중','dusk':'황혼','ultra':'울트라',
+  'single-strike':'일격','rapid-strike':'연격','crowned':'왕관',
+  'ice':'백마','shadow':'흑마','hero':'마이티폼','female':'암컷 ♀','male':'수컷 ♂',
+  'f':'암컷 ♀','complete':'퍼펙트','10':'10%','50':'50%',
+  'unbound':'해방','confined':'굴레','solo':'단독','school':'군집',
+  'amped':'하이','low-key':'로우','antique':'앤티크','phony':'모조품',
+  'wellspring':'우물의 가면','hearthflame':'화덕의 가면','cornerstone':'주받침의 가면',
+  'bloodmoon':'블러드문','stellar':'스텔라','origin-forme':'오리진',
+  // 레전드 Z-A · 메가 차원 러시
+  'mega-z':'메가 Z','z':'Z','mega-complete':'메가 퍼펙트',
+  'original':'오리지널 컬러','original-color':'오리지널 컬러',
+  'curly':'말린 모습','droopy':'늘어진 모습','stretchy':'쭉 뻗은 모습',
+  'eternal':'영원의 꽃','eternal-flower':'영원의 꽃'
+};
+
+// 인라인 onerror에서 부르므로 전역에 노출합니다
+window.__sfb = function(img){
+  const id = +img.dataset.dex || 0, slug = img.dataset.slug || '';
+  const flags = +img.dataset.flags || 0;
+  const shiny = img.dataset.shiny === '1' && !img.dataset.noshiny;
+  const next = srcAt((+img.dataset.step || 0) + 1, id, shiny, slug, flags);
+  if (next) { img.dataset.step = next[0]; img.src = next[1]; return; }
+  if (shiny) {                                   // 이로치 도트가 없으면 일반 모습으로
+    img.dataset.noshiny = '1';
+    const r = srcAt(0, id, false, slug, flags);
+    if (r) { img.dataset.step = r[0]; img.src = r[1]; return; }
+  }
+  if (img.dataset.drop) {                        // 모습 목록: 도트가 없으면 자리표시로
+    img.style.display = 'none';
+    const ph = img.nextElementSibling;
+    if (ph && ph.classList.contains('nodot')) ph.hidden = false;
+    const btn = img.closest('button');
+    if (btn) btn.dataset.nodot = '1';
+    return;
+  }
+  img.style.display = 'none';                    // 전부 실패 → 이름 배지
+  const b = img.nextElementSibling;
+  if (b && b.classList.contains('mon__blank')) b.hidden = false;
+};
+
+const imgTag = p => {
+  const slug = slugOf(p);
+  const cached = p.sprite && p.sprite.startsWith('data:');
+  const r = cached ? null : srcAt(0, pidOf(p), p.shiny, slug, p.flags || 0);
+  const url = cached ? p.sprite : (r ? r[1] : '');
+  const blank = `<div class="mon__blank"${url ? ' hidden' : ''}></div>`;
+  if (!url) return blank;
+  return `<img src="${esc(url)}" alt="" loading="lazy"
+    data-dex="${pidOf(p)||''}" data-slug="${esc(slug)}" data-shiny="${p.shiny?1:0}"
+    data-flags="${p.flags||0}"
+    data-step="${cached ? -1 : r[0]}" onerror="__sfb(this)">` + blank;
+};
+
+/* 버전마다 따로 기록할 수 있게 타이틀을 하나씩 나눴습니다 */
+const GAMES = ['레드','그린','블루','피카츄','금','은','크리스탈',
+  '루비','사파이어','에메랄드','파이어레드','리프그린',
+  '다이아몬드','펄','플라티나','하트골드','소울실버',
+  '블랙','화이트','블랙2','화이트2','X','Y','오메가루비','알파사파이어',
+  '썬','문','울트라썬','울트라문','레츠고 피카츄','레츠고 이브이',
+  '소드','실드','브릴리언트 다이아몬드','샤이닝 펄','레전드 아르세우스',
+  '스칼렛','바이올렛'];
+
+/* 볼 이름 → 도트 아이콘 */
+const BALL_SLUG = {
+  '몬스터볼':'poke-ball','슈퍼볼':'great-ball','하이퍼볼':'ultra-ball','마스터볼':'master-ball',
+  '프리미어볼':'premier-ball','럭셔리볼':'luxury-ball','네스트볼':'nest-ball','다이브볼':'dive-ball',
+  '타이머볼':'timer-ball','리피트볼':'repeat-ball','퀵볼':'quick-ball','힐볼':'heal-ball',
+  '다크볼':'dusk-ball','네트볼':'net-ball','헤비볼':'heavy-ball','레벨볼':'level-ball',
+  '루어볼':'lure-ball','프렌드볼':'friend-ball','러브볼':'love-ball','문볼':'moon-ball',
+  '드림볼':'dream-ball','비스트볼':'beast-ball','사파리볼':'safari-ball','스포츠볼':'sport-ball',
+  '파크볼':'park-ball','치어리볼':'cherish-ball'
+};
+const BALLS = Object.keys(BALL_SLUG);
+const ballIcon = ko => BALL_SLUG[ko]
+  ? `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/${BALL_SLUG[ko]}.png` : '';
+const ballTag = ball => {
+  if (!ball) return `<span style="opacity:.45">볼 미기록</span>`;
+  const ic = ballIcon(ball);
+  return (ic ? `<img src="${ic}" alt="" onerror="this.remove()">` : '') + esc(ball);
+};
+
+/* ═══ 한국어 도감 색인 ═══════════════════════════
+   이름표를 한 번만 내려받아 기기에 저장합니다.
+   그 다음부터는 인터넷 없이도 한국어로 검색돼요.            */
+const CSV_BASE = [
+  'https://cdn.jsdelivr.net/gh/PokeAPI/pokeapi@master/data/v2/csv/',
+  'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/'
+];
+const IDXKEY = 'pokebox:dex:v5';
+const TYPE_BY_ID = {1:'normal',2:'fighting',3:'flying',4:'poison',5:'ground',6:'rock',
+  7:'bug',8:'ghost',9:'steel',10:'fire',11:'water',12:'grass',13:'electric',14:'psychic',
+  15:'ice',16:'dragon',17:'dark',18:'fairy'};
+const MAX_DEX = 1025;
+let INDEX = null;      // [[도감번호, 한국어, 영어], ...]
+let TYPEMAP = {};      // 도감번호 → [타입]
+let FORMS = {};        // 도감번호 → [[주소, 도트번호, 이름, 표시비트], ...]
+let BASES = {};        // 도감번호 → 종족 식별자 (charizard, mr-mime …)
+let CHAIN = {};        // 도감번호 → 같은 진화 사슬에 속한 도감번호들
+
+function parseCSV(text){
+  return text.trim().split(/\r?\n/).slice(1).map(line => {
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < line.length; i++){
+      const c = line[i];
+      if (q) { if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur); return out;
+  });
+}
+async function fetchCSV(name){
+  let last;
+  for (const base of CSV_BASE){
+    try { const r = await fetch(base + name); if (r.ok) return await r.text(); last = new Error('http ' + r.status); }
+    catch(e){ last = e; }
+  }
+  throw last || new Error('fetch failed');
+}
+async function buildIndex(){
+  const [namesTxt, typesTxt, monTxt, spTxt, formTxt] = await Promise.all([
+    fetchCSV('pokemon_species_names.csv'),
+    fetchCSV('pokemon_types.csv'),
+    fetchCSV('pokemon.csv'),            // 리전폼·메가진화처럼 능력치가 다른 모습
+    fetchCSV('pokemon_species.csv'),    // 종족 식별자 + 암수 외형 차이 여부
+    fetchCSV('pokemon_forms.csv')       // 무늬만 다른 모습 (안농 글자, 비비용 무늬 …)
+  ]);
+  const ko = {}, en = {};
+  for (const r of parseCSV(namesTxt)){
+    const id = +r[0], lang = +r[1];
+    if (!id || id > MAX_DEX) continue;
+    if (lang === 3) ko[id] = r[2];            // 3 = 한국어
+    else if (lang === 9) en[id] = r[2];       // 9 = 영어
+  }
+  const list = [];
+  for (let id = 1; id <= MAX_DEX; id++){
+    if (ko[id] || en[id]) list.push([id, ko[id] || '', (en[id] || '').toLowerCase()]);
+  }
+  if (list.length < 100) throw new Error('index too small');
+
+  const types = {};
+  for (const r of parseCSV(typesTxt)){
+    const pid = +r[0], tid = +r[1], slot = +r[2];
+    if (!pid || pid > MAX_DEX) continue;
+    const ko2 = TYPES[TYPE_BY_ID[tid]]?.[0];
+    if (!ko2) continue;
+    (types[pid] = types[pid] || [])[slot - 1] = ko2;
+  }
+  // 종족 식별자 + 암수 외형 차이 여부
+  const bases = {}, genderDiff = {}, chainOf = {}, byChain = {};
+  for (const r of parseCSV(spTxt)){
+    const id = +r[0];
+    if (!id || id > MAX_DEX || !r[1]) continue;
+    bases[id] = r[1];
+    if (r[13] === '1' && r[8] !== '-1' && r[8] !== '0') genderDiff[id] = true;
+    const cid = +r[3];                       // 진화 사슬 번호
+    if (cid) { chainOf[id] = cid; (byChain[cid] = byChain[cid] || []).push(id); }
+  }
+  const chain = {};
+  for (const id in chainOf){
+    const g = byChain[chainOf[id]];
+    if (g && g.length > 1) chain[id] = g.slice().sort((x,y) => x - y);
+  }
+
+  const raw = {};                       // 도감번호 → [[식별자, 도트번호, 비트]]
+  const pidSpecies = {};                // 도트번호 → 도감번호
+
+  // 1) 능력치가 다른 모습 (메가진화·리전폼·기라티나 오리진 …)
+  for (const r of parseCSV(monTxt)){
+    const pid = +r[0], ident = r[1], sid = +r[2], isDefault = r[7] === '1';
+    if (!sid || sid > MAX_DEX || !ident) continue;
+    pidSpecies[pid] = sid;
+    if (/-totem|-cosplay|-starter|-own-tempo|-battle-bond|-eternamax/.test(ident)) continue;
+    const entry = [ident, pid, isDefault ? F_DEFAULT : 0];
+    (raw[sid] = raw[sid] || []);
+    if (isDefault) raw[sid].unshift(entry); else raw[sid].push(entry);
+  }
+
+  // 2) 암수 외형이 다른 포켓몬의 암컷 모습 (화염레오, 우도리, 하마돈 …)
+  for (const sid in genderDiff){
+    const id = +sid;
+    if (!raw[id] || !raw[id].length) continue;
+    raw[id].push([bases[id] + '-f', raw[id][0][1], F_FEMALE]);
+  }
+
+  // 3) 무늬만 다른 모습 (안농 글자, 비비용 무늬, 플라베베 꽃색 …)
+  for (const r of parseCSV(formTxt)){
+    const fident = r[2], pid = +r[3], isDefault = r[5] === '1';
+    if (isDefault || !fident || !pid) continue;
+    const sid = pidSpecies[pid];
+    if (!sid || !raw[sid]) continue;
+    const already = raw[sid].some(([id2]) => id2 === (bases[sid] + '-' + fident));
+    if (already) continue;
+    raw[sid].push([bases[sid] + '-' + fident, pid, F_COSMETIC]);
+  }
+
+  // 주소와 이름을 미리 계산해 담아둡니다
+  const forms = {};
+  for (const sid in raw){
+    const id = +sid, base = bases[id] || '';
+    const seen = new Set(), out = [];
+    for (const [ident, pid, bits] of raw[id]){
+      const isDef = !!(bits & F_DEFAULT);
+      let slug;
+      if (bits & F_FEMALE) slug = slugify(base) + '-f';
+      else {
+        const sfx = ident.startsWith(base + '-') ? ident.slice(base.length + 1) : '';
+        slug = (isDef || !sfx) ? slugify(base) : slugify(base) + '-' + slugify(sfx);
+        slug = SD_FIX[slug] || slug;
+      }
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      let label;
+      if (isDef) label = genderDiff[id] ? '수컷 ♂' : '기본';
+      else if (bits & F_FEMALE) label = '암컷 ♀';
+      else {
+        const sfx = ident.startsWith(base + '-') ? ident.slice(base.length + 1) : ident;
+        label = FORM_KO[sfx] ||
+          sfx.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
+      out.push([slug, pid, label, bits]);
+    }
+    if (out.length > 1) forms[id] = out;
+  }
+
+  return { v:5, list, types, forms, bases, chain };
+}
+async function ensureIndex(){
+  if (INDEX) return true;
+  try {                                       // 저장해둔 색인 먼저
+    let raw = null;
+    if (window.storage) { try { raw = (await window.storage.get(IDXKEY))?.value; } catch(e){} }
+    if (!raw) { try { raw = localStorage.getItem(IDXKEY); } catch(e){} }
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.v === 5 && d.list?.length) {
+        INDEX = d.list; TYPEMAP = d.types || {};
+        FORMS = d.forms || {}; BASES = d.bases || {}; CHAIN = d.chain || {}; return true;
+      }
+    }
+  } catch(e){}
+  try {
+    const d = await buildIndex();
+    INDEX = d.list; TYPEMAP = d.types; FORMS = d.forms; BASES = d.bases; CHAIN = d.chain;
+    const s = JSON.stringify(d);
+    try { if (window.storage) await window.storage.set(IDXKEY, s); else localStorage.setItem(IDXKEY, s); } catch(e){}
+    return true;
+  } catch(e){ return false; }
+}
+function searchIndex(q){
+  q = q.trim().toLowerCase();
+  if (!q || !INDEX) return [];
+  const head = [], tail = [];
+  for (const it of INDEX){
+    if (it[1].startsWith(q) || it[2].startsWith(q)) head.push(it);
+    else if (it[1].includes(q) || it[2].includes(q)) tail.push(it);
+    if (head.length >= 8) break;
+  }
+  return head.concat(tail).slice(0, 8);
+}
+
+/* ═══ 저장소 ═════════════════════════════════════
+   Claude 미리보기 → window.storage
+   내 폰 / 브라우저 → localStorage
+   둘 다 안 되면 → 메모리 (백업 파일로 내보내기 권장)      */
+const KEY = 'pokebox:v1';
+let memory = null;
+const Store = {
+  async load(){
+    if (window.storage) {
+      try { const r = await window.storage.get(KEY); if (r?.value) return JSON.parse(r.value); }
+      catch(e){ /* 키 없음 */ }
+    }
+    try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch(e){}
+    return memory;
+  },
+  async save(data){
+    const s = JSON.stringify(data);
+    memory = data;
+    if (window.storage) { try { await window.storage.set(KEY, s); return true; } catch(e){} }
+    try { localStorage.setItem(KEY, s); return true; }
+    catch(e){ toast('저장 공간이 가득 찼어요. 백업 파일로 내보내주세요.'); return false; }
+  }
+};
+
+/* ═══ 상태 ═══════════════════════════════════════ */
+let db = { trainer:'', mons:[] };
+let filter = { q:'', game:'전체', shiny:false, sort:'custom' };
+let reordering = false;
+let editingId = null;
+let detailId = null;
+
+const $ = s => document.querySelector(s);
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastT;
+function toast(msg){
+  const t = el('toast'); t.textContent = msg; t.setAttribute('data-show','');
+  clearTimeout(toastT); toastT = setTimeout(() => t.removeAttribute('data-show'), 2400);
+}
+
+/* ═══ 렌더 ═══════════════════════════════════════ */
+function stats(){
+  const m = db.mons;
+  el('sCount').textContent = m.length;
+  el('sGames').textContent = new Set(m.map(p => p.game).filter(Boolean)).size;
+  el('sShiny').textContent = m.filter(p => p.shiny).length;
+  const dates = m.map(p => p.date).filter(Boolean).sort();
+  const last = dates[dates.length - 1];
+  el('sLast').textContent = last ? last.slice(2).replace(/-/g,'.') : '—';
+}
+
+function renderChips(){
+  const box = el('gameChips');
+  const games = ['전체', ...new Set(db.mons.map(p => p.game).filter(Boolean))];
+  if (!games.includes(filter.game)) filter.game = '전체';
+  box.innerHTML = games.map(g =>
+    `<button class="chip" data-game="${esc(g)}" aria-pressed="${g === filter.game}">${esc(g)}</button>`
+  ).join('');
+}
+
+function visible(){
+  let list = db.mons.slice();
+  const q = filter.q.trim().toLowerCase();
+  if (q) list = list.filter(p =>
+    [p.nick, p.species, p.met, p.memo, p.game, p.form].some(v => (v||'').toLowerCase().includes(q)));
+  if (filter.game !== '전체') list = list.filter(p => p.game === filter.game);
+  if (filter.shiny) list = list.filter(p => p.shiny);
+
+  const s = filter.sort;
+  if (s === 'custom') return list;      // 박스에 담긴 순서 그대로
+  list.sort((a,b) => {
+    if (s === 'new')  return (b.date||'').localeCompare(a.date||'') || b.created - a.created;
+    if (s === 'old')  return (a.date||'').localeCompare(b.date||'') || a.created - b.created;
+    if (s === 'dex')  return (a.dex||9999) - (b.dex||9999);
+    if (s === 'lv')   return (b.level||0) - (a.level||0);
+    return (a.nick||'').localeCompare(b.nick||'', 'ko');
+  });
+  return list;
+}
+
+function card(p){
+  const types = (p.types||[]).filter(Boolean);
+  const glow = types.length ? typeColor(types[0]) : '#3A4176';
+  const name = [p.nick, p.form && `(${p.form})`, p.level && `Lv.${p.level}`]
+    .filter(Boolean).join(' ');
+  return `
+  <button class="mon${p.shiny ? ' mon--shiny' : ''}" data-id="${p.id}"
+          aria-label="${esc(name)}">
+    <div class="mon__glow" style="background:radial-gradient(circle,${glow},transparent 70%)"></div>
+    ${p.shiny ? '<span class="shinytag" aria-hidden="true">✦</span>' : ''}
+    <div class="mon__art">${imgTag(p)}</div>
+  </button>`;
+}
+
+function render(){
+  stats(); renderChips();
+  const list = visible();
+  el('grid').innerHTML = list.map(card).join('');
+  if (reordering) paintPicked();
+  const isEmpty = db.mons.length === 0;
+  el('empty').hidden = !isEmpty && list.length > 0;
+  if (!isEmpty && list.length === 0) {
+    el('empty').hidden = false;
+    el('empty').innerHTML =
+      `<div style="font-size:34px">◌</div><h2>조건에 맞는 포켓몬이 없어요</h2>
+       <p>검색어나 필터를 바꿔보세요.</p>
+       <button class="btn" id="resetFilter">필터 초기화</button>`;
+  } else if (isEmpty) {
+    el('empty').innerHTML =
+      `<div style="font-size:34px">◓</div><h2>박스가 비어 있어요</h2>
+       <p>처음 전당에 오른 파트너부터 기록해보세요.</p>
+       <button class="btn btn--gold" data-add>첫 포켓몬 추가</button>`;
+  }
+}
+
+/* ═══ 시트 ═══════════════════════════════════════ */
+function openSheet(node){
+  el('scrim').setAttribute('data-open','');
+  node.setAttribute('data-open','');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheets(){
+  el('scrim').removeAttribute('data-open');
+  document.querySelectorAll('.sheet').forEach(s => s.removeAttribute('data-open'));
+  document.body.style.overflow = '';
+}
+
+function fillTypeSelects(){
+  const opts = ['<option value="">—</option>']
+    .concat(Object.values(TYPES).map(([ko]) => `<option value="${ko}">${ko}</option>`)).join('');
+  el('fType1').innerHTML = opts;
+  el('fType2').innerHTML = opts;
+}
+
+const F = ['fNick','fSpecies','fDex','fLevel','fGender','fType1','fType2','fShiny','fGame','fDate',
+  'fAbility','fNature','fBall','fMet','fMetSpecies','fMetLevel','fMove1','fMove2','fMove3','fMove4','fMemo'];
+
+let stagedSprite = '';
+
+function openEditor(id){
+  editingId = id || null;
+  stagedSprite = ''; stagedSlug = ''; stagedForm = ''; stagedPid = 0; stagedFlags = 0;
+  stagedEvo = []; el('evoSpecies').value = ''; el('evoLevel').value = '';
+  F.forEach(k => { const n = el(k); if (n.type === 'checkbox') n.checked = false; else n.value = ''; });
+  el('lookup').value = '';
+  renderSuggest([]);
+  el('lookupHint').className = 'hint';
+  el('lookupHint').textContent = INDEX
+    ? `한국어 이름 ${INDEX.length}마리를 기기에 저장해뒀어요. 오프라인에서도 검색됩니다.`
+    : '한국어 이름으로 검색하세요. 처음 한 번만 이름표를 내려받습니다.';
+  el('formErr').hidden = true;
+
+  if (id) {
+    const p = db.mons.find(x => x.id === id);
+    if (!p) return;
+    el('editTitle').textContent = '포켓몬 수정';
+    el('fNick').value = p.nick || ''; el('fSpecies').value = p.species || '';
+    el('fDex').value = p.dex || ''; el('fLevel').value = p.level || '';
+    el('fGender').value = p.gender || '';
+    el('fType1').value = p.types?.[0] || ''; el('fType2').value = p.types?.[1] || '';
+    el('fShiny').checked = !!p.shiny;
+    el('fGame').value = p.game || ''; el('fDate').value = p.date || '';
+    el('fAbility').value = p.ability || ''; el('fNature').value = p.nature || '';
+    el('fBall').value = p.ball || ''; el('fMet').value = p.met || '';
+    el('fMetSpecies').value = p.metSpecies || ''; el('fMetLevel').value = p.metLevel || '';
+    stagedEvo = (p.evo || []).map(e => ({ ...e }));
+    (p.moves||[]).forEach((m,i) => el('fMove' + (i+1)).value = m || '');
+    el('fMemo').value = p.memo || '';
+    stagedSprite = p.sprite || '';
+    stagedSlug = p.slug || '';
+    stagedForm = p.form || '';
+    stagedPid = p.pid || p.dex || 0;
+    stagedFlags = p.flags || 0;
+  } else {
+    el('editTitle').textContent = '포켓몬 추가';
+    el('fDate').value = new Date().toISOString().slice(0,10);
+    const last = db.mons[db.mons.length - 1];
+    if (last?.game) el('fGame').value = last.game;
+  }
+  el('previewNote').textContent = '도감번호로 찾은 도트';
+  renderEvo();
+  fillChainList(+el('fDex').value);
+  renderForms(+el('fDex').value);
+  previewSprite();
+  openSheet(el('editSheet'));
+}
+
+function save(){
+  const game = el('fGame').value.trim();
+  const nick = el('fNick').value.trim();
+  const species = el('fSpecies').value.trim();
+  if (!game) { showErr('게임 이름을 입력해주세요.'); return; }
+  if (!nick && !species) { showErr('별명이나 종족 중 하나는 입력해주세요.'); return; }
+
+  const types = [el('fType1').value, el('fType2').value].filter(Boolean);
+  const moves = ['fMove1','fMove2','fMove3','fMove4'].map(k => el(k).value.trim()).filter(Boolean);
+  const data = {
+    nick: nick || species, species, dex: +el('fDex').value || null,
+    level: +el('fLevel').value || null, gender: el('fGender').value,
+    types: [...new Set(types)], shiny: el('fShiny').checked,
+    game, date: el('fDate').value, ability: el('fAbility').value.trim(),
+    nature: el('fNature').value.trim(), ball: el('fBall').value.trim(),
+    met: el('fMet').value.trim(),
+    metSpecies: el('fMetSpecies').value.trim(), metLevel: +el('fMetLevel').value || null,
+    evo: stagedEvo.filter(e => e.species),
+    moves, memo: el('fMemo').value.trim(),
+    sprite: stagedSprite,
+    slug: stagedSlug || sdSlug(+el('fDex').value, '', true),
+    pid: stagedPid || +el('fDex').value || null,
+    flags: stagedFlags, form: stagedForm
+  };
+
+  if (editingId) {
+    const i = db.mons.findIndex(x => x.id === editingId);
+    db.mons[i] = { ...db.mons[i], ...data };
+    toast(`${data.nick} 정보를 수정했어요`);
+  } else {
+    db.mons.push({ id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
+                   created: Date.now(), ...data });
+    toast(`${data.nick}(을)를 박스에 넣었어요`);
+  }
+  Store.save(db); closeSheets(); render();
+}
+function showErr(m){ const e = el('formErr'); e.textContent = m; e.hidden = false; }
+
+/* ═══ 상세 ═══════════════════════════════════════ */
+function openDetail(id){
+  const p = db.mons.find(x => x.id === id);
+  if (!p) return;
+  detailId = id;
+  const types = (p.types||[]).filter(Boolean);
+  const glow = types.length ? typeColor(types[0]) : '#3A4176';
+  const rows = [
+    ['모습', p.form],
+    ['몬스터볼', p.ball],
+    ['레벨', p.level ? 'Lv. ' + p.level : ''],
+    ['성별', p.gender],
+    ['특성', p.ability],
+    ['성격', p.nature],
+    ['만난 날짜', p.date ? p.date.replace(/-/g,'. ') : ''],
+    ['만난 장소', p.met],
+    ['만났을 때', [p.metSpecies, p.metLevel && `Lv.${p.metLevel}`].filter(Boolean).join(' · ')],
+    ['게임', p.game]
+  ].filter(r => r[1]);
+
+  el('detailBody').innerHTML = `
+    <div class="detail__hero">
+      <div class="detail__art">
+        <div class="mon__glow" style="background:radial-gradient(circle,${glow},transparent 70%);inset:-20%"></div>
+        ${imgTag(p)}
+      </div>
+      <div class="detail__meta">
+        <div class="readout">${p.shiny ? '✦ Shiny' : 'Met'}</div>
+        <h2 id="detailName">${esc(p.nick)}</h2>
+        <div style="color:var(--muted);font-size:13px">${esc([p.species, p.form].filter(Boolean).join(' · '))}</div>
+        <div class="mon__types" style="margin-top:8px">
+          ${types.map(t => `<span class="type" style="background:${typeColor(t)}">${esc(t)}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+    <dl class="dl">
+      ${rows.map(([k,v]) => `<dt>${k}</dt><dd${k==='몬스터볼' ? ' class="ball"' : ''}>${k==='몬스터볼' ? ballTag(v) : esc(v)}</dd>`).join('')}
+    </dl>
+    ${evoTimeline(p)}
+    ${p.moves?.length ? `<div class="readout" style="margin:18px 0 6px">Moves</div>
+      <div class="moves">${p.moves.map(m => `<div class="move">${esc(m)}</div>`).join('')}</div>` : ''}
+    ${p.memo ? `<div class="readout" style="margin:18px 0 6px">Memo</div>
+      <div class="move" style="white-space:pre-wrap">${esc(p.memo)}</div>` : ''}
+  `;
+  openSheet(el('detailSheet'));
+}
+
+/* ═══ 도감 불러오기 ══════════════════════════════ */
+async function toDataURL(url){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('http ' + r.status);
+  const b = await r.blob();
+  if (!/^image\//.test(b.type)) throw new Error('not an image');
+  if (b.type === 'image/gif') throw new Error('animated');   // 움직이는 도트는 제외
+  if (b.size > 90000) throw new Error('too big');   // 저장 공간을 아끼기 위해
+  return await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(b);
+  });
+}
+
+function renderSuggest(items){
+  const box = el('suggest');
+  if (!items.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = items.map(([id, ko, en]) => `
+    <button type="button" data-dex="${id}">
+      <img src="${(srcAt(0,id,false,slugify(en))||[0,''])[1]}" alt="" data-dex="${id}"
+           data-slug="${esc(slugify(en))}" data-step="0" onerror="__sfb(this)">
+      <span><b>${esc(ko || en)}</b>${ko && en ? `<i>${esc(en)}</i>` : ''}</span>
+      <span class="no">No.${String(id).padStart(4,'0')}</span>
+    </button>`).join('');
+}
+
+let stagedSlug = '';    // 고른 모습의 주소
+let stagedForm = '';    // 고른 모습의 이름 ('기본'이면 저장 안 함)
+let stagedPid = 0;      // 고른 모습의 도트번호
+let stagedFlags = 0;    // 고른 모습의 표시비트
+
+function renderForms(dex){
+  const wrap = el('formField'), box = el('forms');
+  const variants = FORMS[dex];
+  if (!variants || variants.length < 2) { wrap.hidden = true; box.innerHTML = ''; return; }
+  const shiny = el('fShiny').checked;
+  wrap.hidden = false;
+  box.innerHTML = variants.map(([slug, pid, label, bits]) => {
+    const r = srcAt(0, pid, shiny, slug, bits);
+    if (!r) return '';
+    return `<button type="button" data-slug="${esc(slug)}" data-pid="${pid}"
+      data-label="${esc(label)}" data-flags="${bits}"
+      aria-pressed="${slug === stagedSlug}">
+      <img src="${r[1]}" alt="" loading="lazy" data-dex="${pid}" data-slug="${esc(slug)}"
+           data-shiny="${shiny?1:0}" data-flags="${bits}" data-step="${r[0]}"
+           data-drop="1" onerror="__sfb(this)">
+      <div class="nodot" hidden>도트<br>없음</div>
+      <span>${esc(label)}</span>
+    </button>`;
+  }).join('');
+}
+
+// 검색 결과를 골랐을 때 — 이름·타입·도트를 한 번에 채웁니다
+function pick(id){
+  const it = INDEX?.find(x => x[0] === id);
+  const name = it?.[1] || it?.[2] || '';
+  el('fDex').value = id;
+  if (name) {
+    el('fSpecies').value = name;
+    if (!el('fNick').value) el('fNick').value = name;
+  }
+  const t = TYPEMAP[id] || [];
+  el('fType1').value = t[0] || '';
+  el('fType2').value = t[1] || '';
+  el('lookup').value = name || String(id);
+  renderSuggest([]);
+  stagedSprite = '';
+  stagedSlug = (FORMS[id] && FORMS[id][0][0]) || sdSlug(id, '', true);
+  stagedForm = ''; stagedPid = id; stagedFlags = 0;
+  fillChainList(id);
+  renderForms(id);
+  previewSprite();
+  // 진화 계통이 있으면 가장 앞 단계를 '만났을 때 모습' 후보로 제안합니다
+  if (!el('fMetSpecies').value && !stagedEvo.length) {
+    const ids = CHAIN[id];
+    if (ids && ids.length > 1) {
+      el('evoHint').textContent =
+        `이 계통: ${ids.map(koOf).filter(Boolean).join(' → ')}`;
+    } else {
+      el('evoHint').textContent = '이 포켓몬은 진화하지 않아요.';
+    }
+  }
+  el('lookupHint').className = 'hint';
+  el('lookupHint').textContent = name ? `${name} 정보를 채웠어요.` : `No.${id} 도트를 불러왔어요.`;
+  cacheSprite();
+}
+
+// 도트를 기기에 담아두면 비행기 모드에서도 보입니다 (실패해도 표시엔 지장 없음)
+async function cacheSprite(){
+  const dex = +el('fDex').value;
+  const pid = stagedPid || dex;
+  const shiny = el('fShiny').checked;
+  const slug = stagedSlug || sdSlug(dex, '', true);
+  for (let i = 0; i < ((stagedFlags & F_COSMETIC) ? 1 : CDN.length); i++){
+    const u = CDN[i](pid, shiny, slug, !!(stagedFlags & F_FEMALE));
+    if (!u) continue;
+    try { stagedSprite = await toDataURL(u); break; } catch(e){}
+  }
+  if ((stagedPid || +el('fDex').value) === pid) {
+    el('previewNote').textContent = stagedSprite
+      ? '도트를 기기에 저장했어요 — 오프라인에서도 보여요'
+      : '도트는 인터넷에 연결됐을 때 표시돼요';
+  }
+}
+
+// 도감번호만 있으면 검색 없이도 도트를 보여줍니다
+function previewSprite(){
+  const dex = +el('fDex').value;
+  const box = el('preview'), img = el('previewImg');
+  if (!dex) { box.hidden = true; return; }
+  box.hidden = false;
+  img.style.display = '';
+  const pid = stagedPid || dex;
+  img.dataset.dex = pid;
+  img.dataset.shiny = el('fShiny').checked ? '1' : '0';
+  delete img.dataset.noshiny;
+  const slug = stagedSlug || sdSlug(dex, '', true);
+  img.dataset.slug = slug;
+  img.dataset.flags = stagedFlags;
+  const r = srcAt(0, pid, el('fShiny').checked, slug, stagedFlags);
+  if (!r) { box.hidden = true; return; }
+  img.dataset.step = r[0];
+  img.src = r[1];
+  el('previewName').textContent = el('fSpecies').value || ('No.' + String(dex).padStart(4,'0'));
+}
+
+async function lookup(){
+  const raw = el('lookup').value.trim();
+  const hint = el('lookupHint');
+  if (!raw) { hint.className = 'hint'; hint.textContent = '이름을 한국어로 입력해보세요. 예: 피카츄'; return; }
+
+  if (/^\d+$/.test(raw)) { await ensureIndex(); pick(+raw); return; }
+
+  hint.className = 'hint'; hint.textContent = '찾는 중…';
+  if (await ensureIndex()) {
+    const hits = searchIndex(raw);
+    if (hits.length) { pick(hits[0][0]); return; }
+    hint.className = 'hint hint--err';
+    hint.textContent = `'${raw}'로는 찾지 못했어요. 이름 일부만 넣어도 됩니다. 예: 리자`;
+    return;
+  }
+
+  // 이름표를 못 받았을 때 — PokeAPI로 한 마리만 조회
+  try {
+    const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + encodeURIComponent(raw.toLowerCase()));
+    if (!r.ok) throw new Error('http ' + r.status);
+    const d = await r.json();
+    el('fDex').value = d.id;
+    el('fType1').value = ''; el('fType2').value = '';
+    d.types.slice(0,2).forEach((t,i) => {
+      const ko = TYPES[t.type.name]?.[0];
+      if (ko) el('fType' + (i+1)).value = ko;
+    });
+    let name = d.name;
+    try {
+      const sd = await (await fetch(d.species.url)).json();
+      const k = sd.names.find(n => n.language.name === 'ko');
+      if (k) name = k.name;
+    } catch(e){}
+    el('fSpecies').value = name;
+    if (!el('fNick').value) el('fNick').value = name;
+    previewSprite(); cacheSprite();
+    hint.className = 'hint'; hint.textContent = `${name} 정보를 채웠어요.`;
+  } catch(e) {
+    hint.className = 'hint hint--err';
+    hint.textContent = '이름표를 내려받지 못했어요(오프라인 또는 차단). 도감번호를 넣으면 도트는 바로 나옵니다.';
+  }
+}
+
+// 상세 화면의 진화 여정
+function evoTimeline(p){
+  const steps = [];
+  if (p.metSpecies || p.metLevel) {
+    steps.push({
+      name: p.metSpecies || p.species || '',
+      note: p.metLevel ? `Lv.${p.metLevel}에서 만남` : '만남',
+      dex: p.metSpecies ? dexOfName(p.metSpecies) : p.dex
+    });
+  }
+  for (const e of (p.evo || [])) {
+    steps.push({ name: e.species, note: e.level ? `Lv.${e.level}에서 진화` : '진화',
+                 dex: e.dex || dexOfName(e.species) });
+  }
+  if (steps.length < 2) return '';
+  return `<div class="readout" style="margin:18px 0 2px">Journey</div>
+    <div class="timeline">${steps.map(t => `
+      <div class="tl">
+        <div class="tl__dot">${evoThumb(t.dex).replace('width:34px','width:26px')}</div>
+        <div class="tl__txt"><b>${esc(t.name)}</b><span>${esc(t.note)}</span></div>
+      </div>`).join('')}</div>`;
+}
+
+/* ═══ 진화 과정 ══════════════════════════════════ */
+let stagedEvo = [];     // [{species, level, dex}]
+
+const koOf = dex => { const it = INDEX?.find(x => x[0] === dex); return it ? (it[1] || it[2]) : ''; };
+const dexOfName = name => {
+  if (!INDEX || !name) return 0;
+  const q = name.trim().toLowerCase();
+  return INDEX.find(x => x[1].toLowerCase() === q || x[2] === q)?.[0] || 0;
+};
+// 같은 진화 사슬에 속한 이름들을 입력 도우미에 넣습니다
+function fillChainList(dex){
+  const ids = CHAIN[dex] || (dex ? [dex] : []);
+  el('chainList').innerHTML = ids.map(id => `<option value="${esc(koOf(id))}">`).join('');
+}
+const evoThumb = dex => {
+  if (!dex) return '<span style="width:34px;flex:none"></span>';
+  const r = srcAt(0, dex, false, sdSlug(dex, '', true), 0);
+  return r ? `<img src="${r[1]}" alt="" data-dex="${dex}" data-step="${r[0]}"
+    onerror="this.style.visibility='hidden'">` : '<span style="width:34px;flex:none"></span>';
+};
+
+function renderEvo(){
+  el('evoBox').innerHTML = stagedEvo.map((e, i) => `
+    <div class="evo__row">
+      <span class="evo__step">${i + 1}단계</span>
+      ${evoThumb(e.dex)}
+      <span class="evo__name">${esc(e.species)}</span>
+      ${e.level ? `<span class="evo__lv">Lv.${e.level}</span>` : ''}
+      <button type="button" class="evo__del" data-i="${i}" aria-label="삭제">×</button>
+    </div>`).join('');
+}
+
+function addEvo(){
+  const name = el('evoSpecies').value.trim();
+  const lv = +el('evoLevel').value || null;
+  if (!name) { el('evoSpecies').focus(); return; }
+  if (stagedEvo.length >= 4) { toast('진화는 4단계까지 기록할 수 있어요'); return; }
+  stagedEvo.push({ species: name, level: lv, dex: dexOfName(name) });
+  el('evoSpecies').value = ''; el('evoLevel').value = '';
+  renderEvo();
+  // 마지막 진화형을 현재 종족으로 맞춰줍니다
+  if (!el('fSpecies').value) el('fSpecies').value = name;
+}
+
+/* ═══ 순서 조정 ══════════════════════════════════
+   설정순일 때만 켤 수 있습니다. db.mons 배열 자체를 바꿔서 저장해요.  */
+function setReorder(on){
+  if (on) {
+    if (filter.sort !== 'custom') {     // 설정순이 아니면 화면 순서와 저장 순서가 어긋납니다
+      filter.sort = 'custom';
+      el('sort').value = 'custom';
+    }
+    if (filter.q || filter.game !== '전체' || filter.shiny) {
+      filter = { q:'', game:'전체', shiny:false, sort:'custom' };
+      el('q').value = '';
+      el('shinyOnly').setAttribute('aria-pressed','false');
+      toast('전체를 보면서 순서를 맞춥니다');
+    }
+  }
+  reordering = on;
+  pickedId = null;
+  el('reorderBar').hidden = !on;
+  el('grid').classList.toggle('reorder', on);
+  el('reorderBtn').setAttribute('aria-pressed', String(on));
+  el('reorderMsg').textContent = REORDER_HELP;
+  render();
+}
+
+// 배열에서 from 위치를 빼서 to 위치에 끼워 넣습니다
+function moveMon(fromId, toId){
+  const a = db.mons.findIndex(x => x.id === fromId);
+  const b = db.mons.findIndex(x => x.id === toId);
+  if (a < 0 || b < 0 || a === b) return false;
+  const [item] = db.mons.splice(a, 1);
+  db.mons.splice(b, 0, item);
+  return true;
+}
+
+/* 두 가지 방법으로 옮길 수 있습니다.
+     1) 도트를 끌어다 놓기
+     2) 옮길 도트를 탭 → 놓을 자리를 탭 (폰에서 더 확실해요)          */
+let pickedId = null;
+
+function applyMove(fromId, toId){
+  if (!moveMon(fromId, toId)) return false;
+  Store.save(db);
+  pickedId = null;
+  render();
+  return true;
+}
+
+// 화면을 다시 그린 뒤에도 고른 표시가 남아 있게 합니다
+function paintPicked(){
+  document.querySelectorAll('.mon.picked').forEach(x => x.classList.remove('picked'));
+  if (!pickedId) { el('reorderMsg').textContent = REORDER_HELP; return; }
+  const t = el('grid').querySelector(`.mon[data-id="${pickedId}"]`);
+  if (t) t.classList.add('picked');
+  el('reorderMsg').textContent = '옮길 자리의 도트를 탭하세요. 다시 탭하면 선택이 풀립니다.';
+}
+const REORDER_HELP = '도트를 끌어다 놓거나, 옮길 도트를 탭한 뒤 놓을 자리를 탭하세요.';
+
+function initDrag(){
+  const grid = el('grid');
+  let downId = null, downEl = null, overEl = null;
+  let startX = 0, startY = 0, dragging = false, pid = null;
+
+  const clearVisual = () => {
+    if (downEl) downEl.classList.remove('dragging');
+    if (overEl) overEl.classList.remove('dropzone');
+    downEl = null; overEl = null; dragging = false;
+  };
+
+  const tileAt = (x, y) => {
+    const under = document.elementFromPoint(x, y);
+    return under ? under.closest('.mon') : null;
+  };
+
+  grid.addEventListener('pointerdown', e => {
+    if (!reordering) return;
+    const tile = e.target.closest('.mon');
+    if (!tile) return;
+    e.preventDefault();                       // 스크롤·길게누르기 메뉴를 막습니다
+    downId = tile.dataset.id; downEl = tile;
+    startX = e.clientX; startY = e.clientY;
+    dragging = false; pid = e.pointerId;
+    tile.setPointerCapture(pid);              // 타일 자신이 포인터를 붙잡습니다
+  });
+
+  grid.addEventListener('pointermove', e => {
+    if (!downId || e.pointerId !== pid) return;
+    if (!dragging) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 8) return;
+      dragging = true;
+      downEl.classList.add('dragging');
+    }
+    const tile = tileAt(e.clientX, e.clientY);
+    const next = (tile && tile !== downEl) ? tile : null;
+    if (next === overEl) return;
+    if (overEl) overEl.classList.remove('dropzone');
+    overEl = next;
+    if (overEl) overEl.classList.add('dropzone');
+  });
+
+  const finish = e => {
+    if (!downId || (e && e.pointerId !== pid)) return;
+    const wasDragging = dragging;
+    const from = downId;
+    const to = overEl && overEl.dataset.id;
+    clearVisual();
+    downId = null; pid = null;
+
+    if (wasDragging) {
+      if (to) applyMove(from, to);            // 끌어다 놓기 완료
+      else paintPicked();
+      return;
+    }
+    // 움직이지 않았으면 탭으로 봅니다
+    if (!pickedId)            { pickedId = from; paintPicked(); }
+    else if (pickedId === from){ pickedId = null; paintPicked(); }
+    else                       { applyMove(pickedId, from); }
+  };
+
+  grid.addEventListener('pointerup', finish);
+  grid.addEventListener('pointercancel', () => { clearVisual(); downId = null; pid = null; });
+  grid.addEventListener('contextmenu', e => { if (reordering) e.preventDefault(); });
+}
+
+/* ═══ 랜덤 6마리 ═════════════════════════════════
+   필터와 무관하게 박스 전체에서 뽑습니다.                  */
+function rollParty(){
+  const pool = db.mons.slice();
+  for (let i = pool.length - 1; i > 0; i--){          // 피셔–예이츠 섞기
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const picks = pool.slice(0, 6);
+  el('party').innerHTML = picks.map(card).join('');
+  el('partySub').textContent = db.mons.length > 6
+    ? `박스에 있는 ${db.mons.length}마리 중에서 뽑았어요.`
+    : `박스에 ${db.mons.length}마리뿐이라 전부 나왔어요.`;
+}
+
+/* ═══ 백업 ═══════════════════════════════════════ */
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pokebox-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('백업 파일을 저장했어요');
+}
+function importJSON(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const d = JSON.parse(fr.result);
+      if (!Array.isArray(d.mons)) throw new Error();
+      const have = new Set(db.mons.map(p => p.id));
+      const add = d.mons.filter(p => p.id && !have.has(p.id));
+      db.mons = db.mons.concat(add);
+      if (!db.trainer && d.trainer) { db.trainer = d.trainer; el('trainerName').value = d.trainer; }
+      Store.save(db); render();
+      toast(add.length ? `${add.length}마리를 불러왔어요` : '새로 추가할 포켓몬이 없었어요');
+    } catch(e) { toast('이 파일은 읽을 수 없어요. 내보낸 백업 파일인지 확인해주세요.'); }
+  };
+  fr.readAsText(file);
+}
+
+/* ═══ 홀로 포일 ══════════════════════════════════ */
+function holo(){
+  const card = el('trainerCard'), h = el('holo');
+  const set = (x, y) => {
+    h.style.setProperty('--hx', x + 'px');
+    h.style.setProperty('--hy', y + 'px');
+  };
+  card.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    set(((e.clientX - r.left) / r.width - .5) * 260, ((e.clientY - r.top) / r.height - .5) * 160);
+  });
+  card.addEventListener('pointerleave', () => set(0, 0));
+  window.addEventListener('deviceorientation', e => {
+    if (e.gamma == null) return;
+    set(Math.max(-45, Math.min(45, e.gamma)) * 5, Math.max(-45, Math.min(45, e.beta - 40)) * 3);
+  });
+}
+
+/* ═══ 이벤트 ═════════════════════════════════════ */
+document.addEventListener('click', e => {
+  const add = e.target.closest('[data-add]');
+  if (add) { openEditor(null); return; }
+  if (e.target.closest('[data-close]')) { closeSheets(); return; }
+  if (e.target.id === 'resetFilter') {
+    filter = { q:'', game:'전체', shiny:false, sort:filter.sort };
+    el('q').value = ''; el('shinyOnly').setAttribute('aria-pressed','false'); render(); return;
+  }
+  const chip = e.target.closest('[data-game]');
+  if (chip) { filter.game = chip.dataset.game; render(); return; }
+  const mon = e.target.closest('.mon');
+  if (mon && !reordering) openDetail(mon.dataset.id);
+});
+el('scrim').addEventListener('click', closeSheets);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheets(); });
+
+el('q').addEventListener('input', e => { filter.q = e.target.value; render(); });
+el('sort').addEventListener('change', e => {
+  filter.sort = e.target.value;
+  if (reordering && filter.sort !== 'custom') setReorder(false);
+  else render();
+});
+el('shinyOnly').addEventListener('click', e => {
+  filter.shiny = !filter.shiny;
+  e.currentTarget.setAttribute('aria-pressed', String(filter.shiny));
+  render();
+});
+el('trainerName').addEventListener('change', e => { db.trainer = e.target.value.trim(); Store.save(db); });
+el('saveBtn').addEventListener('click', save);
+el('lookupBtn').addEventListener('click', lookup);
+el('lookup').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+let sugT;
+el('lookup').addEventListener('input', e => {
+  const v = e.target.value;
+  clearTimeout(sugT);
+  if (!v.trim()) { renderSuggest([]); return; }
+  sugT = setTimeout(async () => {
+    if (!(await ensureIndex())) { renderSuggest([]); return; }
+    if (el('lookup').value === v) renderSuggest(searchIndex(v));
+  }, 160);
+});
+el('forms').addEventListener('click', e => {
+  const b = e.target.closest('button[data-slug]');
+  if (!b) return;
+  stagedSlug = b.dataset.slug;
+  stagedPid = +b.dataset.pid || 0;
+  stagedFlags = +b.dataset.flags || 0;
+  stagedForm = b.dataset.label === '기본' ? '' : b.dataset.label;
+  stagedSprite = '';
+  el('forms').querySelectorAll('button').forEach(x =>
+    x.setAttribute('aria-pressed', String(x === b)));
+  previewSprite();
+  cacheSprite();
+});
+el('suggest').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dex]');
+  if (b) pick(+b.dataset.dex);
+});
+el('fDex').addEventListener('input', () => {
+  stagedSprite = ''; stagedSlug = ''; stagedForm = ''; stagedFlags = 0;
+  stagedPid = +el('fDex').value || 0;
+  renderForms(+el('fDex').value); previewSprite();
+});
+el('fShiny').addEventListener('change', () => {
+  stagedSprite = ''; renderForms(+el('fDex').value); previewSprite();
+});
+el('fSpecies').addEventListener('input', () => {
+  if (!el('preview').hidden) el('previewName').textContent = el('fSpecies').value || ('No.' + String(el('fDex').value).padStart(4,'0'));
+});
+el('editBtn').addEventListener('click', () => { closeSheets(); setTimeout(() => openEditor(detailId), 180); });
+el('delBtn').addEventListener('click', () => {
+  const p = db.mons.find(x => x.id === detailId);
+  if (!p) return;
+  if (!confirm(`${p.nick}(을)를 박스에서 지울까요? 되돌릴 수 없어요.`)) return;
+  db.mons = db.mons.filter(x => x.id !== detailId);
+  Store.save(db); closeSheets(); render(); toast(`${p.nick}(을)를 지웠어요`);
+});
+el('reorderBtn').addEventListener('click', () => {
+  if (!db.mons.length) { toast('먼저 포켓몬을 추가해주세요'); return; }
+  setReorder(!reordering);
+});
+el('reorderDone').addEventListener('click', () => { setReorder(false); toast('순서를 저장했어요'); });
+el('randomBtn').addEventListener('click', () => {
+  if (!db.mons.length) { toast('먼저 포켓몬을 추가해주세요'); return; }
+  rollParty();
+  openSheet(el('partySheet'));
+});
+el('rerollBtn').addEventListener('click', rollParty);
+el('evoAdd').addEventListener('click', addEvo);
+el('evoSpecies').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addEvo(); } });
+el('evoLevel').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addEvo(); } });
+el('evoBox').addEventListener('click', e => {
+  const b = e.target.closest('.evo__del');
+  if (!b) return;
+  stagedEvo.splice(+b.dataset.i, 1);
+  renderEvo();
+});
+el('exportBtn').addEventListener('click', exportJSON);
+el('importBtn').addEventListener('click', () => el('importFile').click());
+el('importFile').addEventListener('change', e => {
+  if (e.target.files[0]) importJSON(e.target.files[0]);
+  e.target.value = '';
+});
+
+/* ═══ 시작 ═══════════════════════════════════════ */
+(async function init(){
+  fillTypeSelects();
+  el('gameList').innerHTML = GAMES.map(g => `<option value="${g}">`).join('');
+  el('ballList').innerHTML = BALLS.map(b => `<option value="${b}">`).join('');
+  holo();
+
+  // 오프라인으로도 열리도록 서비스 워커를 등록합니다
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  const saved = await Store.load();
+  if (saved) { db = { trainer: saved.trainer || '', mons: saved.mons || [] }; }
+  el('trainerName').value = db.trainer;
+  el('sort').value = filter.sort;
+  initDrag();
+  render();
+
+  // 이름표가 오면 잘못된 주소로 저장된 모습을 바로잡고 다시 그립니다
+  ensureIndex().then(ok => {
+    if (!ok) return;
+    let fixed = 0;
+    for (const p of db.mons){
+      if (p.sprite && p.sprite.startsWith('data:image/gif')) { p.sprite = ''; fixed++; }
+      if (!p.dex) continue;
+      const variants = FORMS[p.dex];
+      if (!p.form) {                                  // 기본 모습
+        const want = (variants && variants[0][0]) || sdSlug(p.dex, '', true);
+        if (p.slug !== want || !p.pid) { p.slug = want; p.pid = p.dex; p.flags = 0; fixed++; }
+        continue;
+      }
+      if (!variants) continue;
+      const hit = variants.find(([, , label]) => label === p.form);
+      if (!hit) continue;
+      if (p.slug !== hit[0] || p.pid !== hit[1] || (p.flags || 0) !== hit[3]) {
+        p.slug = hit[0]; p.pid = hit[1]; p.flags = hit[3]; fixed++;
+      }
+    }
+    if (fixed) Store.save(db);
+    render();
+  });
+})();
+
+})();
+</script>
+</body>
+</html>
