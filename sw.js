@@ -1,12 +1,13 @@
 /* 명예의 전당 박스 — 오프라인 지원
    앱 껍데기는 설치할 때 저장하고, 도트 이미지는 한 번 본 것을 모아둡니다. */
 
-const SHELL = 'pokebox-shell-v1';
+const SHELL = 'pokebox-shell-v2';
 const MEDIA = 'pokebox-media-v1';
 
 const SHELL_FILES = [
   './',
   './index.html',
+  './wallpaper.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
